@@ -193,14 +193,10 @@ void decode_rot13() {
 
 
 int main(int argc, char *argv[]) {
-    if (argc != 3 || strcmp(argv[1], "-m") != 0) {
-        fprintf(stderr, "Usage: %s -m <Download|Filter|Combine|Decode>\n", argv[0]);
-        return 1;
-    }
-
-    if (strcmp(argv[2], "Download") == 0) {
-        download_and_unzip();
-    } else if (strcmp(argv[2], "Filter") == 0) {
+    
+ download_and_unzip();
+ 
+    if (strcmp(argv[2], "Filter") == 0) {
         filter_files();
     } else if (strcmp(argv[2], "Combine") == 0) {
         combine_files();

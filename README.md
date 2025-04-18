@@ -526,23 +526,6 @@ Bagian ini akan selalu menyalin **runme** ke folder **base_path** saat fungsi di
 Penjelasan Program
 Program ini merupakan program monitoring proses berbasis Linux yang dinamakan debugmon. Program ini mampu mencatat, memantau, menghentikan, dan memulihkan proses milik user tertentu di sistem, serta mencatat aktivitas ke dalam sebuah file log.
 
-Library yang Digunakan
-Program menggunakan berbagai library standar C untuk operasi file, string, direktori /proc, manipulasi UID, sinyal proses, waktu, dan file descriptor:
-
-stdio.h, stdlib.h, string.h, unistd.h → Fungsi standar input/output, manipulasi file dan proses.
-
-dirent.h → Mengakses direktori /proc.
-
-ctype.h → Mengecek karakter angka.
-
-sys/types.h, pwd.h → Mengakses informasi user dan UID.
-
-signal.h → Mengirim sinyal ke proses.
-
-time.h → Mengambil informasi waktu saat logging.
-
-sys/stat.h, fcntl.h → Operasi file descriptor dan hak akses file.
-
 Penjelasan Fungsi Utama
 1. log_status(const char *process_name, const char *status)
 Mencatat nama proses dan status (RUNNING atau FAILED) ke dalam file debugmon.log dengan format timestamp.

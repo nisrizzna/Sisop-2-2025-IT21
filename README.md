@@ -5,6 +5,232 @@
 3. Dina Rahmadani - 5027241065
 
 # Soal_1
+## 1. Deksripsi Soal
+Soal ini meminta kita untuk mencari tahu password dari clue yang diberikan yang memanfaatkan fungsi-fungsi seperti download, extract zip, filter, combine, dan juga decode menggunakan ROT13
+
+## 2. Struktur Direktori
+
+Setelah program berjalan, struktur direktori akan menjadi seperti berikut:
+
+├── Clues
+│   ├── ClueA
+│   ├── ClueB
+│   ├── ClueC
+│   └── ClueD
+├── Combined.txt
+├── Decoded.txt
+├── Filtered
+├── action
+└── action.c
+
+## 3. Fitur Program
+### a. ./action
+Ketika dijalankan, maka program akan mengecek file CLues, serta men-download dan meng-extract file Clues apabila belum ada.
+### b. ./action -m Filter
+Berfungsi untuk mem-filter file-file di dalam clues sehingga hanya bersisa file yang mengandung angka dan huruf.
+### c. ./action -m Combine
+Ketika berjalan, program akan mengombinasikan isi dari file-file tadi hingga membentuk satu kata.
+### d. ./action -m Decode
+Program ini akan menerjemahkan isi dari Combined.txt sehingga password sudah dapat diketahui
+
+## 4. Penjelasan Kode
+
+'void download_and_unzip() {'
+Fungsi untuk mendownload dan unzip
+
+'DIR* dir = opendir("Clues");
+if (dir) {
+    closedir(dir);
+    printf("Clues folder already exists. Skipping download.\n");
+    return;
+}'
+
+-Mengecek apakah folder Clues/ sudah ada.
+-Kalau ada, keluar dari fungsi (skip download).
+
+'remove("Clues.zip");'
+Menghapus file Clues.zip lama jika ada, supaya tidak konflik.
+
+'printf("Downloading Clues.zip...\n");
+pid_t pid_download = fork();'
+-Menampilkan pesan.
+-fork(): membuat proses anak untuk mendownload file, supaya proses download bisa jalan terpisah dari program utama.
+
+'if (pid_download == 0) {
+    execlp("wget", "wget", "URL", "-O", "Clues.zip", NULL);
+    perror("Failed to running wget");
+    exit(1);
+}'
+Di dalam proses anak, menjalankan wget untuk mendownload file Clues.zip dari URL yang sudah ditentukan.
+Jika wget gagal, keluar dari program anak.
+
+'else if (pid_download > 0) {
+    int status;
+    waitpid(pid_download, &status, 0);'
+Di proses utama, program menunggu proses download selesai menggunakan waitpid.
+
+'if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {'
+Cek apakah proses download berhasil (exit status 0).
+
+'printf("Downloading complete!\n");
+printf("Extracting Clues.zip...\n");'
+Menampilkan pesan bahwa download selesai dan mulai ekstraksi file.
+
+'pid_t pid_unzip = fork();
+if (pid_unzip == 0) {
+    execlp("unzip", "unzip", "Clues.zip", NULL);
+    perror("Failed to running unzip");
+    exit(1);
+}'
+Membuat proses anak lagi untuk menjalankan perintah unzip.
+
+'else if (pid_unzip > 0) {
+    waitpid(pid_unzip, &status, 0);
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        printf("Extracting complete!\n");
+        remove("Clues.zip");
+    } else {
+        printf("Failed to extracting file.\n");
+    }
+}'
+Menunggu proses unzip selesai.
+Jika berhasil, hapus file Clues.zip.
+
+'else {
+    perror("Failed to running unzip process");
+}'
+Jika gagal fork untuk unzip, tampilkan error.
+
+'} else {
+    perror("Failed to starting download");
+}'
+Jika gagal fork untuk download, tampilkan error.
+
+'void filter_files() {'
+Fungsi ini bertugas untuk menyaring file di dalam folder Clues/, lalu:
+Memindahkan file .txt yang namanya 1 huruf atau 1 angka ke folder Filtered/
+Menghapus file lain.
+
+'if (mkdir("Filtered", 0755) == -1 && errno != EEXIST) {
+    perror("Failed to create Filtered directory");
+    return;
+}'
+Membuat folder Filtered/ jika belum ada.
+Jika gagal dan error bukan "sudah ada" (EEXIST), tampilkan error.
+
+'printf("Starting filtering process...\n");
+int moved = 0, deleted = 0;'
+Menyiapkan counter untuk file yang dipindahkan (moved) dan dihapus (deleted).
+
+'const char *subdirs[] = {"ClueA", "ClueB", "ClueC", "ClueD", NULL};'
+Menyimpan daftar subfolder yang akan diproses.
+
+'for (int i = 0; subdirs[i] != NULL; i++) {'
+Membuka setiap folder ClueA, ClueB, dst.
+
+'while ((entry = readdir(dir)) != NULL) {'
+Membaca semua file di folder satu per satu.
+
+'if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;'
+Skip . dan .. (entri spesial di UNIX).
+
+'char *ext = strrchr(entry->d_name, '.');
+if (ext && strcmp(ext, ".txt") == 0) {'
+Cari ekstensi file .txt.
+
+'int name_len = ext - entry->d_name;
+if (name_len == 1 && isalnum(entry->d_name[0])) {'
+int name_len = ext - entry->d_name;
+if (name_len == 1 && isalnum(entry->d_name[0])) {
+
+'else {
+    if (remove(filepath) == 0) {
+        deleted++;
+    }
+}'
+Kalau tidak sesuai, hapus file.
+
+'printf("Filtering complete. Moved %d files, deleted %d files.\n", moved, deleted);'
+Tampilkan jumlah.
+
+'void combine_files() {'
+Fungsi ini bertugas untuk menggabungkan file .txt dari folder Filtered/ secara bergantian angka-huruf ke file Combined.txt.
+
+'FILE *combined = fopen("Combined.txt", "w");'
+Membuat file baru
+
+'for (int i = 0; i < 6; i++) {'
+Karena file yang dipindah hanya dari 1.txt - 6.txt dan a.txt - f.txt.
+
+'sprintf(num_file, "Filtered/%d.txt", i+1);'
+Format nama file angka.
+Buka file angka, salin isinya ke Combined.txt, lalu hapus file.
+
+'sprintf(letter_file, "Filtered/%c.txt", 'a' + i);'
+Format nama file huruf.
+Buka file huruf, salin isinya, lalu hapus file.
+
+'printf("Combining complete. %d files processed. Result in Combined.txt\n", processed);'
+Menampilkan berapa file berhasil digabung.
+
+'void decode_rot13() {'
+Fungsi ini bertugas untuk mendekripsi isi file Combined.txt menggunakan ROT13.
+
+'FILE *in = fopen("Combined.txt", "r");
+FILE *out = fopen("Decoded.txt", "w");'
+Membuka file input (Combined.txt) dan file output (Decoded.txt).
+
+'int c;
+while ((c = fgetc(in)) != EOF) {
+    if (isalpha(c)) {
+        char base = islower(c) ? 'a' : 'A';
+        c = ((c - base + 13) % 26) + base;
+    }
+    fputc(c, out);
+}'
+Untuk setiap huruf, geser 13 huruf ke depan (ROT13 cipher).
+
+'fclose(in);
+fclose(out);
+printf("Decoding complete. Password saved to Decoded.txt\n");'
+Menutup file dan menampilkan pesan selesai.
+
+'int main(int argc, char *argv[]) {'
+Program utama.
+
+'download_and_unzip();'
+Selalu jalankan download dan ekstraksi file di awal.
+
+'if (strcmp(argv[2], "Filter") == 0) {
+    filter_files();
+} else if (strcmp(argv[2], "Combine") == 0) {
+    combine_files();
+} else if (strcmp(argv[2], "Decode") == 0) {
+    decode_rot13();
+} else {
+    fprintf(stderr, "Invalid mode. Use Download|Filter|Combine|Decode.\n");
+    return 1;
+}'
+
+Membaca mode dari argumen ke-3 (argv[2]):
+Filter: jalankan filter_files
+Combine: jalankan combine_files
+Decode: jalankan decode_rot13
+Jika mode tidak valid, tampilkan error.
+
+'return 0;'
+Program selesai dengan sukses.
+
+## Revisi
+Sebelum :
+Untuk menjalankan download dan extract file menggunakan perinah :
+./action -m Download
+
+menjadi hanya :
+./action
+
+Kemudian file dapat terdownload dan terextract dengan baik.
+
 
 # Soal_2
 ## 1. Deskripsi Soal

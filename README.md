@@ -523,3 +523,95 @@ Bagian ini akan selalu menyalin **runme** ke folder **base_path** saat fungsi di
 ```
 
 # Soal_4
+Penjelasan Program
+Program ini merupakan program monitoring proses berbasis Linux yang dinamakan debugmon. Program ini mampu mencatat, memantau, menghentikan, dan memulihkan proses milik user tertentu di sistem, serta mencatat aktivitas ke dalam sebuah file log.
+
+Library yang Digunakan
+Program menggunakan berbagai library standar C untuk operasi file, string, direktori /proc, manipulasi UID, sinyal proses, waktu, dan file descriptor:
+
+stdio.h, stdlib.h, string.h, unistd.h → Fungsi standar input/output, manipulasi file dan proses.
+
+dirent.h → Mengakses direktori /proc.
+
+ctype.h → Mengecek karakter angka.
+
+sys/types.h, pwd.h → Mengakses informasi user dan UID.
+
+signal.h → Mengirim sinyal ke proses.
+
+time.h → Mengambil informasi waktu saat logging.
+
+sys/stat.h, fcntl.h → Operasi file descriptor dan hak akses file.
+
+Penjelasan Fungsi Utama
+1. log_status(const char *process_name, const char *status)
+Mencatat nama proses dan status (RUNNING atau FAILED) ke dalam file debugmon.log dengan format timestamp.
+
+Fungsi ini dipanggil oleh daemon atau saat mematikan proses.
+
+2. get_uid_from_username(const char *username)
+Mengubah nama user menjadi User ID (UID).
+
+Digunakan untuk mengidentifikasi proses milik user tersebut.
+
+3. list_processes(uid_t uid)
+Membaca direktori /proc, memfilter hanya proses milik user tertentu (dengan mencocokkan UID).
+
+Menampilkan ID proses (PID) dan nama proses ke terminal.
+
+4. run_daemon(uid_t uid)
+Membuat proses baru (fork) dan menjalankan daemon untuk terus-menerus memantau proses milik user.
+
+Setiap 5 detik, semua proses user yang sedang berjalan akan dicatat sebagai "RUNNING" di debugmon.log.
+
+5. kill_user_processes(uid_t uid)
+Membaca /proc, lalu menghentikan (kill) semua proses yang dimiliki user dengan mengirimkan sinyal SIGKILL.
+
+Setelah mematikan proses, mencatat ke log dengan status "FAILED".
+
+6. main(int argc, char *argv[])
+Memproses argumen saat program dijalankan.
+
+Argumen:
+
+<command>: operasi yang dilakukan (list, daemon, stop, fail, revert).
+
+<user>: username target.
+
+Berdasarkan command:
+
+list → Menampilkan proses.
+
+daemon → Menjalankan debugmon sebagai daemon pemantau.
+
+stop → Memberhentikan daemon dengan perintah pkill -f debugmon.
+
+fail → Membunuh semua proses milik user.
+
+revert → Menjalankan kembali daemon setelah dihentikan.
+
+Output Program
+list
+Menampilkan daftar proses milik user target.
+Contoh output:
+
+yaml
+Copy
+Edit
+PID: 1234 | CMD: bash
+PID: 5678 | CMD: python
+daemon
+Program akan berjalan di background, dan setiap 5 detik mencatat semua proses user ke dalam debugmon.log dengan format:
+
+csharp
+Copy
+Edit
+[10:04:2025]-14:30:15_bash_RUNNING
+stop
+Menghentikan proses daemon debugmon yang sedang berjalan.
+
+fail
+Menghentikan semua proses milik user target, dan mencatat proses yang dihentikan ke dalam debugmon.log dengan status "FAILED".
+
+revert
+Menghidupkan kembali daemon debugmon setelah sebelumnya dihentikan.

